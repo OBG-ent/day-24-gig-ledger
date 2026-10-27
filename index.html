@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GigLedger — Courier &amp; Gig Earnings Tracker</title>
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171b; --panel2:#1e1e24; --line:#2a2a33;
+    --gold:#d4a017; --gold2:#f0c040; --text:#f2f0ea; --muted:#9b98a3;
+    --green:#3ecf6e; --red:#e5534b; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;padding:22px 14px 60px}
+  .wrap{max-width:1060px;margin:0 auto}
+  header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;border-bottom:2px solid var(--gold);padding-bottom:14px;margin-bottom:18px}
+  header.top h1{font-size:30px;letter-spacing:.5px}
+  header.top h1 span{color:var(--gold)}
+  header.top p{color:var(--muted);font-size:14px;width:100%}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .card .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+  .card .value{font-size:24px;font-weight:700}
+  .card .value.gold{color:var(--gold2)} .card .value.green{color:var(--green)} .card .value.red{color:var(--red)}
+  .card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .panel h2{font-size:16px;margin-bottom:14px;color:var(--gold2);letter-spacing:.4px}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.6px}
+  input,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 11px;font-size:14px;outline:none}
+  input:focus,select:focus{border-color:var(--gold)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button{cursor:pointer;border:none;border-radius:9px;font-weight:600;font-size:14px;padding:11px 14px}
+  .btn-gold{background:var(--gold);color:#111;width:100%;margin-top:16px}
+  .btn-gold:hover{background:var(--gold2)}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--gold)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .toolbar .spacer{flex:1}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px}
+  td.num,th.num{text-align:right}
+  tr:hover td{background:#1b1b21}
+  .del{background:none;border:none;color:var(--red);font-size:15px;padding:2px 6px;cursor:pointer}
+  .empty{color:var(--muted);text-align:center;padding:26px 10px;font-size:14px}
+  canvas{width:100%;height:190px;display:block}
+  .rateRow{display:flex;gap:10px;align-items:end;margin-top:6px}
+  .rateRow .grow{flex:1}
+  footer{margin-top:26px;color:var(--muted);font-size:12.5px;text-align:center;line-height:1.7}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Gig<span>Ledger</span> 💰</h1>
+    <p>Every shift, every kilometre, every dollar — the earnings tracker built for couriers and gig drivers. Runs 100% in your browser; your data never leaves this device.</p>
+  </header>
+
+  <section class="cards" id="statCards"></section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>➕ Log a shift</h2>
+      <form id="entryForm">
+        <label for="fDate">Date</label>
+        <input type="date" id="fDate" required>
+        <label for="fClient">Client / platform</label>
+        <input type="text" id="fClient" placeholder="e.g. Dynacare, DoorDash, Uber Eats" required>
+        <div class="row2">
+          <div>
+            <label for="fHours">Hours worked</label>
+            <input type="number" id="fHours" min="0" step="0.25" placeholder="7.5" required>
+          </div>
+          <div>
+            <label for="fKm">Kilometres</label>
+            <input type="number" id="fKm" min="0" step="0.1" placeholder="42" required>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="fGross">Gross pay ($)</label>
+            <input type="number" id="fGross" min="0" step="0.01" placeholder="165.00" required>
+          </div>
+          <div>
+            <label for="fExpAmt">Expense ($)</label>
+            <input type="number" id="fExpAmt" min="0" step="0.01" placeholder="0">
+          </div>
+        </div>
+        <label for="fExpCat">Expense category</label>
+        <select id="fExpCat">
+          <option value="Transit / fuel">Transit / fuel</option>
+          <option value="Parking / tolls">Parking / tolls</option>
+          <option value="Food on shift">Food on shift</option>
+          <option value="Gear / supplies">Gear / supplies</option>
+          <option value="Phone / data">Phone / data</option>
+          <option value="Other">Other</option>
+        </select>
+        <button type="submit" class="btn-gold">Add entry</button>
+      </form>
+
+      <h2 style="margin-top:26px">🧾 Mileage deduction estimator</h2>
+      <p style="font-size:13px;color:var(--muted);line-height:1.55">Many gig workers deduct vehicle/transit kilometres at a per-km rate. Set your rate and GigLedger estimates the deduction your logged kilometres represent.</p>
+      <div class="rateRow">
+        <div class="grow">
+          <label for="rateInput">Rate ($ per km)</label>
+          <input type="number" id="rateInput" min="0" step="0.01" value="0.70">
+        </div>
+        <button class="btn-ghost" id="rateBtn" type="button">Apply</button>
+      </div>
+      <p id="rateOut" style="margin-top:10px;font-size:14px"></p>
+    </section>
+
+    <section class="panel">
+      <h2>📊 Net earnings by day</h2>
+      <canvas id="chart" width="640" height="190"></canvas>
+      <div class="toolbar" style="margin-top:16px">
+        <button class="btn-ghost" id="sampleBtn" type="button">Load sample week</button>
+        <button class="btn-ghost" id="exportBtn" type="button">⬇ Export CSV</button>
+        <span class="spacer"></span>
+        <button class="btn-ghost" id="clearBtn" type="button">Clear all</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Client</th><th class="num">Hrs</th><th class="num">Km</th><th class="num">Gross</th><th class="num">Expenses</th><th class="num">Net</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="emptyMsg">No shifts logged yet. Add your first one on the left — or load the sample week to see GigLedger in action.</div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    GigLedger stores everything in your browser's localStorage — no account, no server, no tracking.<br>
+    Built by Reynold Obago · Day 24 of shipping a project every day · <span class="pill">Vanilla JS · Canvas charts · CSV export</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "gigledger.entries.v1";
+  var RATE_KEY = "gigledger.rate.v1";
+  var entries = load();
+  var rate = parseFloat(localStorage.getItem(RATE_KEY)) || 0.70;
+
+  function load(){
+    try { var raw = localStorage.getItem(KEY); var arr = raw ? JSON.parse(raw) : []; return Array.isArray(arr) ? arr : []; }
+    catch(e){ return []; }
+  }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(entries)); }
+  function money(n){ return "$" + Number(n).toFixed(2); }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  var els = {
+    cards: document.getElementById("statCards"),
+    tbody: document.getElementById("tbody"),
+    empty: document.getElementById("emptyMsg"),
+    chart: document.getElementById("chart"),
+    rateOut: document.getElementById("rateOut"),
+    rateInput: document.getElementById("rateInput")
+  };
+  els.rateInput.value = rate.toFixed(2);
+  document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+
+  function totals(){
+    var t = {gross:0, exp:0, hours:0, km:0, count:entries.length};
+    entries.forEach(function(e){ t.gross += e.gross; t.exp += e.expAmt; t.hours += e.hours; t.km += e.km; });
+    t.net = t.gross - t.exp;
+    t.perHour = t.hours > 0 ? t.net / t.hours : 0;
+    t.perKm = t.km > 0 ? t.net / t.km : 0;
+    return t;
+  }
+
+  function render(){
+    var t = totals();
+    var cards = [
+      {label:"Net earnings", value:money(t.net), cls:"green", sub:t.count + " shift" + (t.count===1?"":"s") + " logged"},
+      {label:"Gross pay", value:money(t.gross), cls:"gold", sub:"before expenses"},
+      {label:"Expenses", value:money(t.exp), cls:"red", sub:"across all shifts"},
+      {label:"Effective $ / hour", value:money(t.perHour), cls:"", sub:t.hours.toFixed(1) + " hours total"},
+      {label:"Effective $ / km", value:money(t.perKm), cls:"", sub:t.km.toFixed(1) + " km total"}
+    ];
+    els.cards.innerHTML = cards.map(function(c){
+      return '<div class="card"><div class="label">' + c.label + '</div><div class="value ' + c.cls + '">' + c.value + '</div><div class="sub">' + c.sub + '</div></div>';
+    }).join("");
+
+    var sorted = entries.slice().sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+    els.tbody.innerHTML = sorted.map(function(e){
+      var net = e.gross - e.expAmt;
+      return "<tr><td>" + esc(e.date) + "</td><td>" + esc(e.client) + "</td>" +
+        '<td class="num">' + e.hours.toFixed(2) + "</td>" +
+        '<td class="num">' + e.km.toFixed(1) + "</td>" +
+        '<td class="num">' + money(e.gross) + "</td>" +
+        '<td class="num" title="' + esc(e.expCat) + '">' + money(e.expAmt) + "</td>" +
+        '<td class="num" style="color:' + (net >= 0 ? "var(--green)" : "var(--red)") + ';font-weight:600">' + money(net) + "</td>" +
+        '<td><button class="del" data-id="' + e.id + '" title="Delete entry">✕</button></td></tr>';
+    }).join("");
+    els.empty.style.display = entries.length ? "none" : "block";
+
+    els.rateOut.innerHTML = "Your <strong>" + t.km.toFixed(1) + " km</strong> at " + money(rate) + "/km ≈ <strong style='color:var(--gold2)'>" + money(t.km * rate) + "</strong> of deductible mileage.";
+    drawChart();
+  }
+
+  function drawChart(){
+    var ctx = els.chart.getContext("2d");
+    var W = els.chart.width, H = els.chart.height;
+    ctx.clearRect(0,0,W,H);
+    var byDay = {};
+    entries.forEach(function(e){ byDay[e.date] = (byDay[e.date] || 0) + (e.gross - e.expAmt); });
+    var days = Object.keys(byDay).sort().slice(-14);
+    if(!days.length){
+      ctx.fillStyle = "#9b98a3"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("Log a shift and your daily net will chart here.", W/2, H/2);
+      return;
+    }
+    var max = Math.max.apply(null, days.map(function(d){ return Math.abs(byDay[d]); }).concat([1]));
+    var base = H - 34, top = 12, bw = Math.min(38, (W - 30) / days.length - 10);
+    var step = (W - 30) / days.length;
+    ctx.strokeStyle = "#2a2a33"; ctx.beginPath(); ctx.moveTo(10, base); ctx.lineTo(W - 10, base); ctx.stroke();
+    days.forEach(function(d, i){
+      var v = byDay[d];
+      var h = Math.max(3, (Math.abs(v) / max) * (base - top));
+      var x = 18 + i * step + (step - bw) / 2;
+      ctx.fillStyle = v >= 0 ? "#d4a017" : "#e5534b";
+      ctx.fillRect(x, base - h, bw, h);
+      ctx.fillStyle = "#f2f0ea"; ctx.font = "10.5px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("$" + Math.round(v), x + bw/2, base - h - 5);
+      ctx.fillStyle = "#9b98a3";
+      ctx.fillText(d.slice(5), x + bw/2, base + 15);
+    });
+  }
+
+  document.getElementById("entryForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var e = {
+      id: Date.now() + "" + Math.floor(Math.random()*1000),
+      date: document.getElementById("fDate").value,
+      client: document.getElementById("fClient").value.trim(),
+      hours: parseFloat(document.getElementById("fHours").value) || 0,
+      km: parseFloat(document.getElementById("fKm").value) || 0,
+      gross: parseFloat(document.getElementById("fGross").value) || 0,
+      expAmt: parseFloat(document.getElementById("fExpAmt").value) || 0,
+      expCat: document.getElementById("fExpCat").value
+    };
+    if(!e.date || !e.client){ return; }
+    entries.push(e); save(); render();
+    ev.target.reset();
+    document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+  });
+
+  els.tbody.addEventListener("click", function(ev){
+    var btn = ev.target.closest(".del");
+    if(!btn){ return; }
+    entries = entries.filter(function(e){ return e.id !== btn.dataset.id; });
+    save(); render();
+  });
+
+  document.getElementById("rateBtn").addEventListener("click", function(){
+    var v = parseFloat(els.rateInput.value);
+    if(isNaN(v) || v < 0){ return; }
+    rate = v; localStorage.setItem(RATE_KEY, String(rate)); render();
+  });
+
+  document.getElementById("sampleBtn").addEventListener("click", function(){
+    var today = new Date();
+    function d(offset){ var t = new Date(today); t.setDate(t.getDate() - offset); return t.toISOString().slice(0,10); }
+    var sample = [
+      {date:d(6), client:"Dynacare (walking courier)", hours:7, km:14.2, gross:161.00, expAmt:12.50, expCat:"Transit / fuel"},
+      {date:d(5), client:"Dynacare (walking courier)", hours:7.5, km:15.8, gross:172.50, expAmt:6.00, expCat:"Food on shift"},
+      {date:d(4), client:"DoorDash", hours:4, km:38.5, gross:96.40, expAmt:9.25, expCat:"Transit / fuel"},
+      {date:d(3), client:"Dynacare (walking courier)", hours:6.5, km:12.9, gross:149.50, expAmt:12.50, expCat:"Transit / fuel"},
+      {date:d(2), client:"Uber Eats", hours:5, km:44.1, gross:118.75, expAmt:14.00, expCat:"Parking / tolls"},
+      {date:d(1), client:"Dynacare (walking courier)", hours:7, km:13.6, gross:161.00, expAmt:7.50, expCat:"Food on shift"},
+      {date:d(0), client:"SkipTheDishes", hours:3.5, km:29.3, gross:84.20, expAmt:5.00, expCat:"Phone / data"}
+    ];
+    sample.forEach(function(s, i){ s.id = "sample" + i + Date.now(); entries.push(s); });
+    save(); render();
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", function(){
+    var lines = ["date,client,hours,km,gross,expense,expense_category,net"];
+    entries.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; }).forEach(function(e){
+      function q(s){ s = String(s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+      lines.push([e.date, q(e.client), e.hours, e.km, e.gross.toFixed(2), e.expAmt.toFixed(2), q(e.expCat), (e.gross - e.expAmt).toFixed(2)].join(","));
+    });
+    var blob = new Blob([lines.join("\n")], {type:"text/csv"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "gigledger-export.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    if(!entries.length){ return; }
+    if(confirm("Delete all " + entries.length + " entries? This can't be undone.")){
+      entries = []; save(); render();
+    }
+  });
+
+  window.addEventListener("resize", drawChart);
+  render();
+})();
+</script>
+</body>
+</html>
